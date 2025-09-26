@@ -93,16 +93,16 @@ async def download_worker(
         error_signal=None
 ):
     """
-    单个文件下载 worker，不断从任务队列中拉取 FileTask 进行处理。
-    支持暂停、终止控制。
+    單一檔案下載 worker，不斷從任務佇列中拉取 FileTask 進行處理。
+    支援暫停、終止控制。
 
-    参数：
-        task_queue (asyncio.Queue): 下载任务队列
-        sem (asyncio.Semaphore): 并发下载控制信号量
-        session (aiohttp.ClientSession): aiohttp 会话
-        pause_event / stop_event: 控制标志
-        update_status (Callable): 状态更新回调
-        logger (Callable): 日志函数
+    參數：
+        task_queue (asyncio.Queue): 下載任務佇列
+        sem (asyncio.Semaphore): 並發下載控制信號量
+        session (aiohttp.ClientSession): aiohttp 會話
+        pause_event / stop_event: 控制標誌
+        update_status (Callable): 狀態更新回呼
+        logger (Callable): 日誌函式
     """
     file_done = 0
     while True:
@@ -163,7 +163,7 @@ async def download_worker(
             task_queue.task_done()
 
 
-# --- 下载主循环 ---
+# --- 下載主循環 ---
 async def download_streamed_posts(
         url=None,
         post_stream=None,
@@ -179,7 +179,7 @@ async def download_streamed_posts(
         error_signal=None
 ):
     """
-    以檔案為單位進行下載，使用任務佇列驅動並發 worker。
+    以檔案為單位進行下載，使用任務佇列驅動並行 worker。
     貼文進度與檔案進度皆即時訊號傳遞。
     """
     cancelled_posts = set()
