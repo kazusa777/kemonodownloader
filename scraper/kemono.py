@@ -8,7 +8,7 @@ from downloader.tasks import FileTask
 from utils import sanitize_filename, rename_list, save_post_content_to_txt
 from utils.meta_dir import load_status
 
-# ========= 全局常量 =========
+# ========= 全域常數 =========
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -16,31 +16,31 @@ USER_AGENT = (
 BASE = "https://kemono.cr"
 DATA_BASE = f"{BASE}/data"
 
-# 所有 API 请求都统一带 Accept:text/css；详情页/列表页都按 JSON 解析，但忽略 MIME 检查
+# 所有 API 請求都統一代 Accept:text/css；詳情頁/列表頁面都按 JSON 解析，但忽略 MIME 檢查
 DEFAULT_HEADERS = {
     "Accept": "text/css",
     "User-Agent": USER_AGENT,
     "Referer": BASE,
 }
 
-# ========= 公共工具 =========
+# ========= 公用工具 =========
 async def refresh_cookie(session: aiohttp.ClientSession, user: str | None = None):
     """
-    访问主页以刷新 DDG 短效 cookie。
-    user 传入类似 'fanbox/user/6668233'；如果为空就访问根站。
+    訪問主畫面以刷新 DDG 短效 cookie。
+    user 傳入類似 'fanbox/user/6668233'；如果是空的就訪問根站
     """
     home_url = f"{BASE}/{user}" if user else BASE
     try:
         async with session.get(home_url, headers=DEFAULT_HEADERS) as resp:
             print(f"[Cookie] 刷新 cookie: {resp.status} {home_url}")
     except Exception as e:
-        print(f"[Cookie] 刷新 cookie 出错: {e}")
+        print(f"[Cookie] 刷新 cookie 出錯: {e}")
 
 async def get_json(session: aiohttp.ClientSession, url: str, user_for_refresh: str | None, *, retry_once: bool = True):
     """
-    统一请求 JSON：
-    - 先请求一次；
-    - 非 200 或 JSON 解析失败时，刷新 cookie 后重试一次（可配）。
+    統一請求 JSON：
+    - 先請求一次；
+    - 非 200 或 JSON 解析失敗時，刷新 cookie 然後再試一次（可配）。
     - 返回 (status, data or None)
     """
     async def _one_try():
@@ -49,17 +49,17 @@ async def get_json(session: aiohttp.ClientSession, url: str, user_for_refresh: s
             if status != 200:
                 return status, None
             try:
-                data = await resp.json(content_type=None)  # 忽略 MIME 类型检查
+                data = await resp.json(content_type=None)  # 忽略 MIME 類型檢查
                 return 200, data
             except Exception as e:
-                # 打印前 200 字方便排查
+                # 印出前 200 字方便排查
                 body = await resp.text()
-                # print(f"[JSON] 解析失败：{e}\n[JSON] Body preview: {body[:200]}")
+                # print(f"[JSON] 解析失敗：{e}\n[JSON] Body preview: {body[:200]}")
                 return 200, None
 
     status, data = await _one_try()
     if (status != 200 or data is None) and retry_once:
-        print(f"[Retry] {url} 首次失败(status={status}, data={type(data).__name__}), 尝试刷新 cookie 后重试…")
+        print(f"[Retry] {url} 首次失敗(status={status}, data={type(data).__name__}), 嘗試刷新 cookie 後重試…")
         await refresh_cookie(session, user_for_refresh)
         status, data = await _one_try()
     return status, data
@@ -67,14 +67,14 @@ async def get_json(session: aiohttp.ClientSession, url: str, user_for_refresh: s
 def extract_external_links(html: str) -> list[str]:
     if not html:
         return []
-    # 支持 mega/drive/dropbox/puu.sh；注意反斜杠转义
+    # 支援 mega/drive/dropbox/puu.sh；注意反斜槓轉義
     return re.findall(r'https?://(?:mega|drive|dropbox|puu\.sh)[^\s"<>]+', html or "")
 
-# ========= 1) 拉取帖子列表（含翻页 & 失败刷新） =========
+# ========= 1) 拉取貼文列表（含翻頁 & 失敗刷新） =========
 async def GetPosts(user: str, session: aiohttp.ClientSession) -> list[dict]:
     """
     user 形如: 'fanbox/user/6668233/posts' 或 'fanbox/user/6668233'
-    这里统一拼成 /api/v1/{user}/posts
+    這裡統一拼成 /api/v1/{user}/posts
     """
     user_norm = user.rstrip("/")
     if not user_norm.endswith("/posts"):
@@ -88,18 +88,18 @@ async def GetPosts(user: str, session: aiohttp.ClientSession) -> list[dict]:
         print(f"[List] GET {url}")
         status, batch = await get_json(session, url, user_for_refresh=user, retry_once=True)
         if status != 200:
-            print(f"[List] HTTP {status}，结束。")
+            print(f"[List] HTTP {status}，結束。")
             break
         if not batch:
-            print("[List] 空页，结束。")
+            print("[List] 空頁，結束。")
             break
         posts.extend(batch)
         offset += 50
 
-    print(f"[List] 共获取 {len(posts)} 条")
+    print(f"[List] 共獲取 {len(posts)} 條")
     return posts
 
-# ========= 2) 生成选择列表 =========
+# ========= 2) 產生選擇列表 =========
 async def get_post_choices(user_url: str, day_mode: int = 1):
     user = user_url.split('https://kemono.cr/')[-1]
     async with aiohttp.ClientSession(headers=DEFAULT_HEADERS) as session:
@@ -118,10 +118,10 @@ async def get_post_choices(user_url: str, day_mode: int = 1):
             choices.append({"id": post["id"], "display": display})
         return choices
 
-# ========= 3) 抽取附件（可选按标题过滤） =========
+# ========= 3) 擷取附件（可選按標題過濾） =========
 async def extract_attachments_urls(
     user_url: str,
-    selected_titles: list = None,  # None=全部, 否则只下载这些title
+    selected_titles: list = None,  # None=全部, 否則只下載這些title
     day_mode: int = 0
 ):
     user = user_url.split('https://kemono.cr/')[-1]
@@ -156,7 +156,7 @@ async def extract_attachments_urls(
 
             status, data = await get_json(session, post_url_api, user_for_refresh=f"{service}/user/{user_id}", retry_once=True)
             if status != 200 or not data:
-                print(f"[Detail] 拉取失败: {status} {post_url_api}")
+                print(f"[Detail] 拉取失敗: {status} {post_url_api}")
                 continue
 
             html_content = (data.get("post") or {}).get("content", "")
@@ -188,10 +188,10 @@ async def extract_attachments_urls(
                 "external_links": external_links
             }
 
-# ========= 4) 旧接口（按 ID 过滤） =========
+# ========= 4) 舊介面（按 ID 過濾） =========
 async def extract_attachments_urls_by_id(
     user_url: str,
-    selected_ids: list = None,  # None=全量，指定id只下载部分
+    selected_ids: list = None,  # None=全部，指定id只下載部分
     day_mode: int = 0
 ):
     user = user_url.split('https://kemono.cr/')[-1]
@@ -214,7 +214,7 @@ async def extract_attachments_urls_by_id(
 
             status, data = await get_json(session, post_url_api, user_for_refresh=f"{service}/user/{user_id}", retry_once=True)
             if status != 200 or not data:
-                print(f"[Detail] 拉取失败: {status} {post_url_api}")
+                print(f"[Detail] 拉取失敗: {status} {post_url_api}")
                 continue
 
             html_content = (data.get("post") or {}).get("content", "")
@@ -250,10 +250,10 @@ async def extract_attachments_urls_by_id(
                 "user": user_id
             }
 
-# ========= 5) 流式迭代 & 并发拉详情（保留但对齐 headers/重试） =========
+# ========= 5) 流式迭代 & 並發拉取詳情（保留但對齊 headers/重試） =========
 async def iter_posts(user: str, session: aiohttp.ClientSession):
     """
-    异步分页获取指定用户的帖子列表（生成器）。
+    非同步分頁獲取指定使用者的貼文列表（產生器）。
     user 形如 'fanbox/user/6668233'
     """
     offset = 0
@@ -262,7 +262,7 @@ async def iter_posts(user: str, session: aiohttp.ClientSession):
         url = f"{base_url}?o={offset}"
         status, batch = await get_json(session, url, user_for_refresh=user, retry_once=True)
         if status != 200:
-            print(f"[Iter] HTTP {status} 终止。")
+            print(f"[Iter] HTTP {status} 終止。")
             break
         if not batch:
             break
@@ -288,18 +288,18 @@ async def fetch_and_yield_post(
     user_id = post["user"]
     service = post["service"]
 
-    # meta_dir 跳过
+    # meta_dir 跳過
     try:
         status_meta = load_status(user_id)
         if status_meta.get(str(post_id)) == "finished":
-            logger(f"已完成（meta_dir），跳过：{post.get('title')}")
+            logger(f"已完成（meta_dir），跳過：{post.get('title')}")
             return
     except Exception:
         pass
 
     folder_title = sanitize_filename(post.get("title", "untitled"))
     if save_base_path:
-        # 处理重复目录 / .post_id
+        # 處理重複目錄 / .post_id
         original_folder_path = os.path.join(save_base_path, folder_title)
         folder_path = original_folder_path
         suffix = 1
@@ -322,16 +322,16 @@ async def fetch_and_yield_post(
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(str(post_id))
         except Exception as e:
-            logger(f"写入 .post_id 失败: {e}")
+            logger(f"寫入 .post_id 失敗: {e}")
     else:
-        folder_path = None  # 不落地时允许为空
+        folder_path = None  # 不落地時允許為空
 
     async with sem:
         try:
             post_url_api = f"{BASE}/api/v1/{service}/user/{user_id}/post/{post_id}"
             status, data = await get_json(session, post_url_api, user_for_refresh=f"{service}/user/{user_id}", retry_once=True)
             if status != 200 or not data:
-                logger(f"帖子详情拉取失败: HTTP {status} {post_url_api}")
+                logger(f"貼文詳情拉取失敗: HTTP {status} {post_url_api}")
                 return
 
             content = (data.get("post") or {}).get("content", "")
@@ -378,18 +378,18 @@ async def fetch_and_yield_post(
                 if signal_host and hasattr(signal_host, "file_max_signal"):
                     signal_host.file_max_signal.emit(len(tasks))
 
-                # 外链与 content.txt
+                # 外部連結與 content.txt
                 if external_links:
                     links_path = os.path.join(folder_path, "external_links.txt")
                     try:
                         async with aiofiles.open(links_path, "w", encoding="utf-8") as f:
                             await f.write("\n".join(external_links))
                     except Exception as e:
-                        logger(f"保存失敗: {e}")
+                        logger(f"儲存失敗: {e}")
                 try:
                     await save_post_content_to_txt(folder_path, post)
                 except Exception as e:
-                    logger(f"保存 content.txt 失敗: {e}")
+                    logger(f"儲存 content.txt 失敗: {e}")
 
         except Exception as e:
             logger(f"貼文詳情拉取異常: {e}")
