@@ -10,14 +10,14 @@ import json
 
 def get_app_meta_dir():
     """
-    自动检测并返回一个适用于 Windows/Android/Linux/macOS 的元数据目录
-    保证可写，无需用户干预。
-    实际上只有windows端 安卓配置环境破防换到c#去了））））
+    自動檢查並回一個適用於 Windows/Android/Linux/macOS 的原始數據目錄
+    保證可寫，無須用戶干預。
+    實際上只有windows端 安卓配置環境破防換到c#去了））））
     """
     app_name = "KemonoDownloader"
     meta_dir_name = "meta"
 
-    # Android 判断：环境变量或 platform
+    # Android 判斷：環境變量或 platform
     if "ANDROID_STORAGE" in os.environ or "ANDROID_ROOT" in os.environ:
         home = os.environ.get("HOME") or "/data/data/com.termux/files/home"
         meta_path = os.path.join(home, app_name, meta_dir_name)
