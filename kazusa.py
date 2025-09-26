@@ -11,8 +11,8 @@ from PyQt6.QtWidgets import (
     QProgressBar, QComboBox, QSpinBox, QDialog, QSizePolicy, QListWidget,
     QMessageBox, QListWidgetItem, QFrame
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer, QSettings
-from PyQt6.QtGui import QIcon, QFont, QPalette, QBrush, QPixmap
+from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer, QSettings, QUrl
+from PyQt6.QtGui import QIcon, QFont, QPalette, QBrush, QPixmap, QDesktopServices
 
 from threading import Thread, Event
 
@@ -46,7 +46,7 @@ class DownloadWorker(QObject):
         self.selected_ids = selected_ids
         self.day_mode = day_mode
         self.parallel = parallel
-        self.pause_event = Event()
+        self.pause_event = Event() 
         self.pause_event.set()
         self.stop_event = Event()
 
@@ -442,6 +442,10 @@ class MainPage(QWidget):
         self.btn_error.setObjectName("Secondary")
         self.btn_settings = QPushButton("設定")
         self.btn_settings.setObjectName("Secondary")
+        self.btn_open_folder = QPushButton("📂 打開資料夾") # 1. 建立按鈕
+        self.btn_open_folder.setObjectName("Secondary")
+        footer_layout.addWidget(self.btn_open_folder) # 2. 加入版面
+
         footer_layout.addWidget(self.btn_error)
         footer_layout.addWidget(self.btn_settings)
         left_layout.addLayout(footer_layout)
@@ -452,6 +456,23 @@ class MainPage(QWidget):
         self.btn_pause.setEnabled(False)
         self.btn_resume.setEnabled(False)
         self.btn_stop.setEnabled(False)
+        self.btn_open_folder.setEnabled(False)
+
+    def open_download_folder(self):
+        """打開目前的下載資料夾"""
+        path = self.path.text().strip()
+        if not path:
+            QMessageBox.warning(self, "錯誤", "路徑為空，無法開啟！")
+            return
+        
+        if not os.path.isdir(path):
+            QMessageBox.warning(self, "錯誤", f"找不到資料夾:\n{path}")
+            return
+            
+        # 使用 QDesktopServices 以跨平台的方式開啟資料夾
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+
     
     def _connect_signals(self):
         self.btn_start.clicked.connect(self.start_download)
@@ -461,6 +482,8 @@ class MainPage(QWidget):
         self.btn_settings.clicked.connect(self.open_settings)
         self.btn_error.clicked.connect(self.show_failed)
         self.btn_select.clicked.connect(self.open_selector)
+        self.btn_open_folder.clicked.connect(self.open_download_folder)
+
     
     def update_ui_state(self, is_running):
         self.btn_start.setEnabled(not is_running)
@@ -468,6 +491,11 @@ class MainPage(QWidget):
         self.btn_pause.setEnabled(is_running)
         self.btn_stop.setEnabled(is_running)
         self.btn_resume.setEnabled(False)
+        # <<< --- 新增：當下載結束時，啟用「打開資料夾」按鈕 --- >>>
+        if not is_running:
+            path = self.path.text().strip()
+            # 只有當路徑存在時才啟用
+            self.btn_open_folder.setEnabled(bool(path) and os.path.isdir(path))
 
     def select_path(self):
         path = QFileDialog.getExistingDirectory(self, "選擇儲存目錄")
@@ -475,6 +503,7 @@ class MainPage(QWidget):
             self.path.setText(path)
 
     def start_download(self):
+        self.btn_open_folder.setEnabled(False)
         # <<< 新增：開始下載時清空舊的日誌 >>>
         self.log_output.clear()
         
@@ -647,7 +676,16 @@ class MainWindow(QMainWindow):
         
         # 將讀取到的路徑設定到 UI 的輸入框中
         self.main_page.path.setText(saved_path)
-        print(f"ℹ️ 已讀取上次儲存的路徑: {saved_path}")
+       
+        # 讀取名為 "maxParallel" 的設定，如果不存在，則預設為 10
+        # QSettings 只能存儲標準類型，所以我們讀取後要轉成 int
+        self.max_parallel = int(settings.value("maxParallel", 10))
+        
+        # 讀取名為 "dayMode" 的設定，如果不存在，則預設為 1
+        self.day_mode = int(settings.value("dayMode", 1))
+        
+        print(f"ℹ️ 已讀取設定: 路徑='{saved_path}', 併發數={self.max_parallel}, 日期模式={self.day_mode}")
+
 
     def update_background(self):
         palette = self.palette()
@@ -676,7 +714,12 @@ class MainWindow(QMainWindow):
         
         # 將路徑儲存到名為 "downloadPath" 的設定中
         settings.setValue("downloadPath", current_path)
-        print(f"ℹ️ 已儲存當前路徑: {current_path}")
+
+        # 儲存目前的併發數和日期模式
+        settings.setValue("maxParallel", self.max_parallel)
+        settings.setValue("dayMode", self.day_mode)
+
+        print(f"ℹ️ 已儲存設定: 併發數={self.max_parallel}, 日期模式={self.day_mode}")
 
     def closeEvent(self, event):
         """當使用者關閉視窗時，自動觸發此事件"""
