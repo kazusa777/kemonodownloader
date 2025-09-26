@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QProgressBar, QComboBox, QSpinBox, QDialog, QSizePolicy, QListWidget,
     QMessageBox, QListWidgetItem, QFrame
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer
+from PyQt6.QtCore import Qt, pyqtSignal, QObject, QTimer, QSettings
 from PyQt6.QtGui import QIcon, QFont, QPalette, QBrush, QPixmap
 
 from threading import Thread, Event
@@ -634,6 +634,21 @@ class MainWindow(QMainWindow):
         self.setAutoFillBackground(True)
         self.update_background()
 
+        self.load_settings() # 呼叫讀取設定的函式
+
+    def load_settings(self):
+        """在程式啟動時，讀取並套用儲存的設定"""
+        # "kazusa777", "kemonodownloader" 是為了讓 QSettings 知道在哪裡儲存設定
+        # 您可以換成您喜歡的名稱
+        settings = QSettings("kazusa777", "kemonodownloader")
+        
+        # 讀取名為 "downloadPath" 的設定，如果不存在，則預設為空字串 ""
+        saved_path = settings.value("downloadPath", "")
+        
+        # 將讀取到的路徑設定到 UI 的輸入框中
+        self.main_page.path.setText(saved_path)
+        print(f"ℹ️ 已讀取上次儲存的路徑: {saved_path}")
+
     def update_background(self):
         palette = self.palette()
         pixmap = QPixmap(self.background_image_path)
@@ -651,6 +666,23 @@ class MainWindow(QMainWindow):
         # 視窗大小改變時，重新縮放並設定背景
         self.update_background()
         super().resizeEvent(event)
+
+    def save_settings(self):
+        """儲存目前的設定"""
+        settings = QSettings("kazusa777", "kemonodownloader")
+        
+        # 獲取目前路徑輸入框的文字
+        current_path = self.main_page.path.text()
+        
+        # 將路徑儲存到名為 "downloadPath" 的設定中
+        settings.setValue("downloadPath", current_path)
+        print(f"ℹ️ 已儲存當前路徑: {current_path}")
+
+    def closeEvent(self, event):
+        """當使用者關閉視窗時，自動觸發此事件"""
+        self.save_settings() # 在關閉前儲存設定
+        super().closeEvent(event) # 繼續執行原本的關閉流程
+
 
 
 if __name__ == "__main__":
