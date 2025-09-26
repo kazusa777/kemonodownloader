@@ -9,7 +9,7 @@ import platform
 import os
 
 def sanitize_filename(title: str, max_length=150) -> str:
-    """将任意字符串转换为安全的 Windows 文件名"""
+    """將任意字串轉換為安全的 Windows 檔名"""
     title = re.sub(r'[\\/:*?"<>|]', '_', title)
     title = ''.join(c for c in title if unicodedata.category(c)[0] != "C")  # 控制符
     title = ''.join(c for c in title if unicodedata.category(c) != "So")  # emoji
@@ -35,44 +35,44 @@ def set_hidden_windows(path):
         try:
             ctypes.windll.kernel32.SetFileAttributesW(str(path), FILE_ATTRIBUTE_HIDDEN)
         except Exception as e:
-            # print(f"设置隐藏属性失败: {e}")
-            log.info(f"设置隐藏属性失败: {e}")
+            # print(f"設定隱藏屬性失敗: {e}")
+            log.info(f"設定隱藏屬性失敗: {e}")
 
 async def save_post_content_to_txt(folder_path, post):
     """
-    保存帖子内容为 content.txt
+    保存貼文內容為 content.txt
     """
     file_path = os.path.join(folder_path, "content.txt")
     lines = []
-    lines.append(f"标题: {post.get('title','')}")
-    lines.append(f"发布时间: {post.get('day','')}")
-    lines.append(f"原帖链接: {post.get('url','')}\n")
+    lines.append(f"標題: {post.get('title','')}")
+    lines.append(f"發布時間: {post.get('day','')}")
+    lines.append(f"貼文連結: {post.get('url','')}\n")
     lines.append("="*30 + "\n")
 
     content_html = post.get("content", "")
     if content_html:
-        # 提取纯文本
+        # 提取純文字
         soup = BeautifulSoup(content_html, "html.parser")
         text_content = soup.get_text(separator='\n', strip=True)
-        lines.append("正文：\n")
+        lines.append("文字：\n")
         lines.append(text_content)
         lines.append("\n")
-        # 额外提取所有图片和超链接
+        # 額外提取所有圖片和連結
         images = [img.get("src") for img in soup.find_all("img") if img.get("src")]
         if images:
-            lines.append("正文内图片链接：")
+            lines.append("貼文內圖片連結：")
             lines += [f"- {url}" for url in images]
         links = [a.get("href") for a in soup.find_all("a") if a.get("href")]
         if links:
-            lines.append("正文内超链接：")
+            lines.append("貼文內連結：")
             lines += [f"- {url}" for url in links]
     else:
-        lines.append("正文为空。\n")
+        lines.append("貼文是空的。\n")
 
     lines.append("\n附件：")
     for f in post.get("files", []):
         lines.append(f"- {f.get('name','文件')} : {f.get('url','')}")
-    lines.append("\n外链：")
+    lines.append("\n外部連結：")
     for link in post.get("external_links", []):
         lines.append(f"- {link}")
 
@@ -83,10 +83,10 @@ async def save_post_content_to_txt(folder_path, post):
 
 def format_title_with_date(title: str, published: str, day_mode: int) -> str:
     """
-    根据日期模式格式化标题（用于创建文件夹名）：
-        0 - 无前缀/后缀
-        1 - 日期前缀：2025-06-13_标题
-        2 - 日期后缀：标题_2025-06-13
+    根據日期格式化標題（用於創建資料夾名稱）：
+        0 - 無前輟/後輟
+        1 - 日期前輟：2025-06-17_標題
+        2 - 日期後輟：標題_2025-06-17
     """
     try:
         day = published.split("T")[0]
