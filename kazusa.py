@@ -620,7 +620,7 @@ class MainWindow(QMainWindow):
         if os.path.exists(icon_path):
                  self.setWindowIcon(QIcon(icon_path))
         
-        self.setWindowTitle("Kemono 下載器v1.0")
+        self.setWindowTitle("Kemono 下載器v1.1")
         self.resize(1100, 650)
         self.setMinimumSize(900, 600)
         
